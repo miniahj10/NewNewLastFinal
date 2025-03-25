@@ -1,0 +1,163 @@
+<style>
+        /* General Body Styling */
+        body {
+            font-family: 'Helvetica Neue', sans-serif;
+            background-color: #e0f7fa; /* Light turquoise background */
+            color: #4a4a4a;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Header Styling */
+        h1 {
+            text-align: center;
+            color: #00796b; /* Deep turquoise */
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+
+        /* Sidebar Styling */
+        #sidebar {
+            width: 250px;
+            height: 100vh;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            padding: 20px;
+            overflow-y: auto;
+            position: fixed;
+            left: 0;
+            top: 0;
+            border-right: 1px solid #b2dfdb;
+        }
+
+        #fileList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #fileList li {
+            padding: 10px;
+            border-bottom: 1px solid #b2dfdb;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            color: #00796b;
+        }
+
+        #fileList li:hover {
+            background-color: #b2dfdb; /* Light turquoise */
+        }
+
+        /* Main Content Styling */
+        #main-content {
+            margin-left: 270px; /* Adjusted for sidebar space */
+            padding: 20px;
+            flex: 1;
+        }
+
+        h3.indent {
+            margin-top: 0;
+            color: #00796b; /* Deep turquoise */
+        }
+
+        /* Control Buttons Styling */
+        #controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 15px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #009688; /* Primary turquoise color */
+            color: #ffffff;
+            transition: background-color 0.3s, transform 0.1s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        button:disabled {
+            background-color: #80cbc4; /* Lighter turquoise for disabled */
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #00796b; /* Darker turquoise on hover */
+            transform: scale(1.05);
+        }
+
+        #startBtn.blinking {
+            background-color: #00796b; /* Deep turquoise */
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0% { background-color: #00796b; }
+            50% { background-color: #80cbc4; }
+            100% { background-color: #00796b; }
+        }
+
+        /* Box Styling for Summary and Transcript */
+        .box {
+            width: 100%;
+            max-height: 500px;
+            background-color: #e0f7fa; /* Light turquoise */
+            border: 1px solid #b2dfdb;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin: 10px 0;
+            padding: 20px;
+            color: #333;
+            font-size: 16px;
+            display: none;
+            overflow-y: auto;
+            border-radius: 8px;
+        }
+
+        #summary, #transcript {
+            background-color: #e0f7fa;
+            border: 1px solid #b2dfdb;
+            color: #00796b;
+        }
+
+        /* Transcript Styling */
+        #transcript ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #transcript li {
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #b2dfdb;
+            color: #00796b;
+        }
+
+        /* Current File Styling */
+        #curr_file {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 17px;
+            color: #00796b;
+            margin-top: 10px;
+        }
+
+        /* Audio Player Styling */
+        audio {
+            width: 300px;
+            height: 30px;
+            border: none;
+            background-color: #e0f7fa;
+            color: #333;
+            border-radius: 5px;
+            outline: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+    </style>

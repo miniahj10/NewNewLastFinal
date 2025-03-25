@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Recording & File Upload</title>
+    <style>
+        /* General Styling */
+        body {
+            font-family: 'Helvetica Neue', sans-serif;
+            background-color: #e0f7fa;
+            color: #4a4a4a;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #00796b;
+            margin-top: 20px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            width: 90%;
+            max-width: 1200px;
+            margin-top: 20px;
+        }
+
+        /* Left Section: Recording Options */
+        .left-section {
+            flex: 1;
+            margin-right: 20px;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .buttons {
+            margin-top: 10px;
+        }
+
+        .buttons button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            border: none;
+            background-color: #00796b;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .buttons button:hover {
+            background-color: #004d40;
+        }
+
+        /* Right Section: Display Names */
+        .right-section {
+            flex: 1;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Bottom Section: File Upload */
+        .bottom-section {
+            width: 90%;
+            max-width: 1200px;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bottom-section input[type="file"] {
+            display: inline-block;
+            padding: 10px;
+            border: 1px solid #b2dfdb;
+            border-radius: 5px;
+        }
+
+        .bottom-section a {
+            text-decoration: none;
+            color: #00796b;
+            font-weight: bold;
+            transition: color 0.2s;
+        }
+
+        .bottom-section a:hover {
+            color: #004d40;
+        }
+
+        @keyframes blink {
+            50% {
+                background-color: #004d40;
+            }
+        }
+
+        #startBtn.blinking {
+            animation: blink 1s infinite;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Audio Recording and File Upload</h1>
+    <h2>Read this paragraph for reference if needed</h2>
+    <p>"To record audio, press the red button and speak clearly into the microphone.
+        When finished, press stop, then review your recording.
+        If satisfied, click 'Save' to store the file or 'Retry' to record again.
+        Once saved, you can process the audio for speaker recognition and summarization by
+        selecting it from the list and clicking 'Analyze.'"</p>
+    <div class="container">
+        <!-- Left Section: Audio Recording -->
+        <div class="left-section">
+            <form action="http://127.0.0.1:3000/home" method="POST" enctype="multipart/form-data">
+                <h3>Enter your name:</h3>
+                <input type="text" name="uname" id="uname" required><br>
+
+                <h5><i>Record an audio segment for at least 30 seconds</i></h5>
+                <h3>Audio Recorder</h3>
+
+                <div class="buttons">
+                    <button id="startBtn" type="button">Start Recording</button>
+                    <button id="stopBtn" type="button" disabled>Stop Recording</button>
+                </div>
+
+                <br>
+                <label for="fileUpload">Optional (Upload audio file instead):</label>
+                <input type="file" id="fileUpload" name="audio" accept="audio/*">
+
+                <br><br>
+                <button type="submit">Submit Uploaded File</button>
+            </form>
+        </div>
+        <h3>{{ emb_stat }}</h3>
+
+        <!-- Right Section: Display Names -->
+        <div class="right-section">
+            <h3>Available Users</h3>
+            <ul>
+                {% for name in uname_list %}
+                <li>{{ name }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Bottom Section: Navigation -->
+    <div class="bottom-section">
+        <div>
+            <a href="/">Click here to Record/Upload meeting to get captions and summary</a>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+
+        document.getElementById('startBtn').onclick = async () => {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const formData = new FormData();
+
+                const name = document.getElementById('uname').value; // Get name from input
+                const fileUpload = document.getElementById('fileUpload').files[0]; // Get file input
+
+                if (!name) {
+                    alert("Please enter your name before submitting.");
+                    return;
+                }
+
+                formData.append('uname', name);
+                formData.append('audio', audioBlob, `recorded_audio_${Date.now()}.wav`);
+
+                // If user uploaded a file, add it to the form data
+                if (fileUpload) {
+                    formData.append('audio', fileUpload);
+                }
+
+                const response = await fetch('/home', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                console.log(await response.text()); // Debugging response
+                audioChunks = [];
+            };
+
+            mediaRecorder.start();
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+        };
+
+        document.getElementById('stopBtn').onclick = () => {
+            mediaRecorder.stop();
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+        };
+    </script>
+
+</body>
+</html>

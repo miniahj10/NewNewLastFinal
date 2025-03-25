@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Recorder</title>
+    <style>
+        /* General Body Styling */
+        body {
+            font-family: 'Helvetica Neue', sans-serif;
+            background-color: #e0f7fa; /* Light turquoise background */
+            color: #4a4a4a;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Header Styling */
+        h1 {
+            text-align: center;
+            color: #00796b; /* Deep turquoise */
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+
+        /* Sidebar Styling */
+        #sidebar {
+            width: 250px;
+            height: 100vh;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            padding: 20px;
+            overflow-y: auto;
+            position: fixed;
+            left: 0;
+            top: 0;
+            border-right: 1px solid #b2dfdb;
+        }
+
+        #fileList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #fileList li {
+            padding: 10px;
+            border-bottom: 1px solid #b2dfdb;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            color: #00796b;
+        }
+
+        #fileList li:hover {
+            background-color: #b2dfdb; /* Light turquoise */
+        }
+
+        /* Main Content Styling */
+        #main-content {
+            margin-left: 270px; /* Adjusted for sidebar space */
+            padding: 20px;
+            flex: 1;
+        }
+
+        h3.indent {
+            margin-top: 0;
+            color: #00796b; /* Deep turquoise */
+        }
+
+        /* Control Buttons Styling */
+        #controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 15px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #009688; /* Primary turquoise color */
+            color: #ffffff;
+            transition: background-color 0.3s, transform 0.1s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        button:disabled {
+            background-color: #80cbc4; /* Lighter turquoise for disabled */
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #00796b; /* Darker turquoise on hover */
+            transform: scale(1.05);
+        }
+
+        #startBtn.blinking {
+            background-color: #00796b; /* Deep turquoise */
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0% { background-color: #00796b; }
+            50% { background-color: #80cbc4; }
+            100% { background-color: #00796b; }
+        }
+
+        /* Box Styling for Summary and Transcript */
+        .box {
+            width: 100%;
+            max-height: 500px;
+            background-color: #e0f7fa; /* Light turquoise */
+            border: 1px solid #b2dfdb;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin: 10px 0;
+            padding: 20px;
+            color: #333;
+            font-size: 16px;
+            display: none;
+            overflow-y: auto;
+            border-radius: 8px;
+        }
+
+        #summary, #transcript {
+            background-color: #e0f7fa;
+            border: 1px solid #b2dfdb;
+            color: #00796b;
+        }
+
+        /* Transcript Styling */
+        #transcript ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #transcript li {
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #b2dfdb;
+            color: #00796b;
+        }
+
+        /* Current File Styling */
+        #curr_file {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 17px;
+            color: #00796b;
+            margin-top: 10px;
+        }
+
+        /* Audio Player Styling */
+        audio {
+            width: 300px;
+            height: 30px;
+            border: none;
+            background-color: #e0f7fa;
+            color: #333;
+            border-radius: 5px;
+            outline: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar for file list -->
+    <div id="sidebar">
+        <h3>Uploaded Audio Files</h3>
+        <ul id="fileList"></ul>
+    </div>
+
+    <!-- Main content area -->
+    <div id="main-content">
+        <h1>SPEAKER RECOGNITION WITH CONVERSATION SUMMARIZATION</h1>
+        <h3 class="indent">File Selected: </h3>
+        <div id="curr_file" class="indent">
+        </div>
+
+        <div id="controls">
+            <button id="startBtn">Start Recording</button>
+            <button id="stopBtn" disabled>Stop Recording</button>
+            <button id="summariseBtn">Show Summary</button>
+            <button id="captionBtn">Show Transcript</button>
+        </div>
+
+        <div id="summary" class="box">Summary content will appear here.</div>
+        <div id="transcript" class="box"></div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+
+        document.getElementById('startBtn').onclick = async () => {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const formData = new FormData();
+
+                const clientTimestamp = new Date().toISOString();
+                const timestamp = clientTimestamp.replace(/[:.]/g, '-');  // Ensure file-safe timestamp
+                const audio_file = `recorded_audio_${timestamp}.wav`;
+
+                formData.append('audio', audioBlob, audio_file);
+                formData.append('timestamp', clientTimestamp);
+
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                // Fetch files again to update the file list in real time
+                fetchFiles();
+                audioChunks = [];
+            };
+
+            mediaRecorder.start();
+            document.getElementById('startBtn').classList.add('blinking');
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+        };
+
+        document.getElementById('stopBtn').onclick = () => {
+            mediaRecorder.stop();
+            document.getElementById('startBtn').classList.remove('blinking');
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+        };
+
+        document.getElementById('summariseBtn').onclick = async () => {
+            const response = await fetch('/summarise', { method: 'POST' });
+            const result = await response.json();
+            document.getElementById('summary').innerHTML = result.summary;
+            toggleVisibility('summary');
+        };
+
+        document.getElementById('captionBtn').onclick = async () => {
+            const currFileDiv = document.getElementById('curr_file');
+            const file = currFileDiv.getAttribute('audio-file');  // Get the filename
+
+            if (file) {
+                const response = await fetch(`/generate_transcript/${file}`, { method: 'POST' });
+                const result = await response.json();
+
+                // Check if we received a transcript array
+                if (Array.isArray(result.transcript)) {
+                    // Format each line as a list item
+                    document.getElementById('transcript').innerHTML = `<ul>` +
+                        result.transcript.map(line => `<li>${line}</li>`).join('') +
+                        `</ul>`;
+                } else {
+                    document.getElementById('transcript').innerHTML = `<p>${result.transcript}</p>`;
+                }
+
+                // Show the transcript box
+                toggleVisibility('transcript');
+            } else {
+                console.error('No file selected');
+            }
+        };
+
+
+
+
+        function toggleVisibility(boxId) {
+            const summaryBox = document.getElementById('summary');
+            const transcriptBox = document.getElementById('transcript');
+
+            if (boxId === 'summary') {
+                summaryBox.style.display = summaryBox.style.display === 'none' || summaryBox.style.display === '' ? 'flex' : 'none';
+                transcriptBox.style.display = 'none'; // Hide transcript when summary is shown
+            } else if (boxId === 'transcript') {
+                transcriptBox.style.display = transcriptBox.style.display === 'none' || transcriptBox.style.display === '' ? 'flex' : 'none';
+                summaryBox.style.display = 'none'; // Hide summary when transcript is shown
+            }
+        }
+
+        // Function to show files and make them clickable
+        function showFiles(files) {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = ''; // Clear the list
+
+            files.forEach(file => {
+                const li = document.createElement('li');
+                li.textContent = file;
+
+                // Make each file clickable
+                li.style.cursor = 'pointer';
+                li.onclick = async () => {
+                    try {
+                        const response = await fetch(`/process_file/${file}`, { method: 'POST' });
+                        if (!response.ok) {
+                            throw new Error('Failed to process file');
+                        }
+                        const blob = await response.blob();
+
+                        // Display file name
+                        const currFileDiv = document.getElementById('curr_file');
+                        currFileDiv.innerHTML = `<h3>${file}</h3>`;
+
+                        // Add audio player
+                        const audio = document.createElement('audio');
+                        audio.controls = true;
+                        audio.src = URL.createObjectURL(blob);  // Create URL for audio data
+                        currFileDiv.setAttribute('audio-file', file);  // Store filename in a data attribute
+
+
+                        currFileDiv.appendChild(audio);
+
+                    } catch (error) {
+                        console.error('Error processing file:', error);
+                    }
+                };
+
+
+                fileList.appendChild(li);
+            });
+        }
+
+        async function fetchFiles() {
+            try {
+                const response = await fetch('/fetch_files', { method: 'POST' });
+                if (!response.ok) {
+                    throw new Error('Failed to fetch files');
+                }
+                const files = await response.json();  // Get the list of files from server
+                showFiles(files);  // Call showFiles to populate the file list
+            } catch (error) {
+                console.error('Error fetching files:', error);
+            }
+        }
+
+        // Fetch files on page load
+        document.addEventListener('DOMContentLoaded', fetchFiles);
+
+    </script>
+</body>
+
+</html>
